@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Echo Server Test Client</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .status.connected {
+            background: #48bb78;
+        }
+
+        .status.disconnected {
+            background: #f56565;
+        }
+
+        .login-section {
+            padding: 30px;
+        }
+
+        .chat-section {
+            display: none;
+            flex-direction: column;
+            height: 500px;
+        }
+
+        .users-list {
+            background: #f7fafc;
+            padding: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .users-list h3 {
+            font-size: 14px;
+            color: #4a5568;
+            margin-bottom: 10px;
+        }
+
+        .users {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .user-badge {
+            background: #667eea;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+        }
+
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f7fafc;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 10px 15px;
+            border-radius: 10px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+
+        .message.system {
+            background: #e2e8f0;
+            color: #4a5568;
+            text-align: center;
+            margin-left: auto;
+            margin-right: auto;
+            font-size: 13px;
+            font-style: italic;
+        }
+
+        .message.other {
+            background: white;
+            margin-right: auto;
+        }
+
+        .message.own {
+            background: #667eea;
+            color: white;
+            margin-left: auto;
+        }
+
+        .message-username {
+            font-weight: bold;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+
+        .message-text {
+            font-size: 14px;
+        }
+
+        .message-time {
+            font-size: 10px;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        .input-section {
+            padding: 20px;
+            background: white;
+            border-top: 2px solid #e2e8f0;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .form-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .form-group input {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
+        .form-group button {
+            width: auto;
+            padding: 12px 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔊 Echo Test Client</h1>
+            <span class="status disconnected" id="status">Disconnected</span>
+        </div>
+
+        <!-- Login Section -->
+        <div class="login-section" id="loginSection">
+            <h2 style="margin-bottom: 20px; color: #2d3748;">Join the Chat</h2>
+            <input type="text" id="usernameInput" placeholder="Enter your username..." maxlength="20">
+            <button id="joinBtn">Join Chat</button>
+        </div>
+
+        <!-- Chat Section -->
+        <div class="chat-section" id="chatSection">
+            <div class="users-list">
+                <h3>👥 Connected Users (<span id="userCount">0</span>)</h3>
+                <div class="users" id="usersList"></div>
+            </div>
+            <div class="messages" id="messages"></div>
+            <div class="input-section">
+                <div class="form-group">
+                    <input type="text" id="messageInput" placeholder="Type a message...">
+                    <button id="sendBtn">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Socket.IO Client Library -->
+    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+    
+    <script>
+        // Elements
+        const loginSection = document.getElementById('loginSection');
+        const chatSection = document.getElementById('chatSection');
+        const usernameInput = document.getElementById('usernameInput');
+        const joinBtn = document.getElementById('joinBtn');
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const messages = document.getElementById('messages');
+        const usersList = document.getElementById('usersList');
+        const userCount = document.getElementById('userCount');
+        const status = document.getElementById('status');
+
+        let socket;
+        let currentUsername = '';
+
+        // Connect to server
+        function connectToServer() {
+            socket = io('http://localhost:3000');
+
+            socket.on('connect', () => {
+                console.log('Connected to server');
+                status.textContent = 'Connected';
+                status.className = 'status connected';
+            });
+
+            socket.on('disconnect', () => {
+                console.log('Disconnected from server');
+                status.textContent = 'Disconnected';
+                status.className = 'status disconnected';
+                addSystemMessage('Disconnected from server');
+            });
+
+            socket.on('registration-success', (data) => {
+                console.log('Registration successful:', data);
+                currentUsername = data.username;
+                loginSection.style.display = 'none';
+                chatSection.style.display = 'flex';
+                addSystemMessage(`Welcome, ${currentUsername}!`);
+            });
+
+            socket.on('user-joined', (data) => {
+                console.log('User joined:', data);
+                addSystemMessage(data.message);
+            });
+
+            socket.on('user-left', (data) => {
+                console.log('User left:', data);
+                addSystemMessage(data.message);
+            });
+
+            socket.on('user-list', (data) => {
+                console.log('User list:', data);
+                updateUsersList(data.users);
+            });
+
+            socket.on('message', (data) => {
+                console.log('Message received:', data);
+                addMessage(data.username, data.message, data.username === currentUsername);
+            });
+
+            socket.on('error', (data) => {
+                console.error('Error:', data);
+                alert('Error: ' + data.message);
+            });
+
+            socket.on('server-shutdown', (data) => {
+                addSystemMessage('⚠️ ' + data.message);
+            });
+        }
+
+        // Join chat
+        joinBtn.addEventListener('click', () => {
+            const username = usernameInput.value.trim();
+            if (username) {
+                socket.emit('register-username', { username });
+            }
+        });
+
+        usernameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                joinBtn.click();
+            }
+        });
+
+        // Send message
+        sendBtn.addEventListener('click', () => {
+            const message = messageInput.value.trim();
+            if (message) {
+                socket.emit('message', { message });
+                messageInput.value = '';
+            }
+        });
+
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendBtn.click();
+            }
+        });
+
+        // Add message to chat
+        function addMessage(username, text, isOwn) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isOwn ? 'own' : 'other'}`;
+            
+            const time = new Date().toLocaleTimeString();
+            
+            messageDiv.innerHTML = `
+                <div class="message-username">${username}</div>
+                <div class="message-text">${escapeHtml(text)}</div>
+                <div class="message-time">${time}</div>
+            `;
+            
+            messages.appendChild(messageDiv);
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        // Add system message
+        function addSystemMessage(text) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message system';
+            messageDiv.textContent = text;
+            messages.appendChild(messageDiv);
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        // Update users list
+        function updateUsersList(users) {
+            usersList.innerHTML = '';
+            userCount.textContent = users.length;
+            
+            users.forEach(username => {
+                const badge = document.createElement('span');
+                badge.className = 'user-badge';
+                badge.textContent = username;
+                usersList.appendChild(badge);
+            });
+        }
+
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Initialize connection
+        connectToServer();
+    </script>
+</body>
+</html>

@@ -1,13 +1,21 @@
 {
   "name": "echo-backend",
   "version": "1.0.0",
-  "description": "Server for Echo",
-  "main": "src/index.js",
+  "description": "Server for Echo - Real-time communication server",
+  "main": "server.js",
   "scripts": {
-    "start" : "node src/index.js",
-    "dev" : "nodemon src/index.js"
+    "start": "node server.js",
+    "dev": "nodemon server.js"
   },
-  "keywords": [],
+  "keywords": ["websocket", "real-time", "chat", "echo"],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.6.1",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
 }
