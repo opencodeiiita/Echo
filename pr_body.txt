@@ -1,0 +1,16 @@
+Issue : #26
+
+FIX: Implemented the initial WebSocket server for the "Taking Inventory" task.
+
+Changes:
+- Created `/server` directory structure.
+- Implemented `server.js` with:
+  - WebSocket server on port 8080.
+  - "First message is username" protocol.
+  - Broadcast logic for user joins.
+  - Connection/disconnection logging with timestamps.
+- Added `package.json` with `ws`, `dotenv`, and scripts (`start`, `dev`).
+- Added `README.md` for server documentation.
+- Added `/server/.gitignore`.
+
+Verified locally by running the server and connecting via WebSocket.
