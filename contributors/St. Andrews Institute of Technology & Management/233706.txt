@@ -1,0 +1,27 @@
+Name: SUMIT RANJAN JHA
+Enrollment Number: 233706
+College: St. Andrews Institute of Technology & Management
+
+About Me:
+I'm passionate about DevOps practices and building efficient CI/CD pipelines. I enjoy working with 
+containerization technologies like Docker and orchestration tools like Kubernetes to streamline 
+deployment processes. Configuration management and infrastructure as code fascinate me, especially 
+using tools like Terraform and Ansible.
+
+I've been exploring Go (Golang) for building scalable backend services and CLI tools. I appreciate 
+Go's simplicity, strong concurrency model with goroutines, and how it compiles to a single binary - 
+making deployment incredibly straightforward. The language's performance and its growing ecosystem 
+for cloud-native applications make it perfect for modern distributed systems.
+
+Currently learning about monitoring and observability using Prometheus and Grafana, and exploring 
+GitOps workflows with ArgoCD. I believe in the philosophy of "automate everything" and treating 
+infrastructure like software.
+
+Favorite Film: Interstellar
+The film's exploration of time, space, and human perseverance resonates deeply. The visual 
+representation of black holes and tesseracts, combined with Hans Zimmer's soundtrack, creates 
+an unforgettable experience. Plus, the scientific accuracy (mostly!) and emotional depth make 
+it a perfect blend of sci-fi and human drama.
+
+Fun Fact: Did you know Velociraptors were actually about the size of a turkey? The ones in 
+Jurassic Park were more accurately sized like Deinonychus or Utahraptor!
