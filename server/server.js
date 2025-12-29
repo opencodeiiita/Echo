@@ -33,7 +33,7 @@ wss.on("connection", (ws) => {
     // Notify all connected clients
     wss.clients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN) {
-        client.send(`${username} has joined`);
+        client.send(`${username} joined`);
       }
     });
 
@@ -41,11 +41,11 @@ wss.on("connection", (ws) => {
     // This ensures username message is not processed twice
     ws.on("message", (message) => {
       const text = message.toString().trim();
-      const username = clients.get(ws);
-      const time = getTimestamp();
-
+      const user = clients.get(ws);
+      
       // Formatting message
-      const finalMessage = `${time}: ${username} said: ${text}`;
+      // MODIFIED: Removed server-side timestamp and "said" to prevent UI clutter
+      const finalMessage = `${user}: ${text}`;
 
       // Broadcasting to all connected clients
       wss.clients.forEach((client) => {
@@ -64,7 +64,7 @@ wss.on("connection", (ws) => {
       // Notifying all connected clients
       wss.clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
-          client.send(`${username} has left`);
+          client.send(`${username} left`);
         }
       });
       clients.delete(ws);
