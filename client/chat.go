@@ -12,7 +12,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-func connectToEchoServer(serverURL string, username string) error {
+func connectToEchoServer(serverURL string, username string, password string) error {
 	u := url.URL{Scheme: "ws", Host: serverURL, Path: "/"}
 	fmt.Printf("Connecting to %s\n", u.String())
 	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
@@ -47,9 +47,9 @@ func connectToEchoServer(serverURL string, username string) error {
 				break
 			}
 			if messageType == websocket.TextMessage {
-				timestamp := getTimestamp()
 				message := string(data)
-				fmt.Printf("\r%s[%s] Server -> Client: %s\nEnter Message : ", "\033[K", timestamp, message)
+				// We print the message directly to avoid double timestamps/prefixes
+				fmt.Printf("\r%s%s\nEnter Message : ", "\033[K", message)
 			}
 		}
 	}()
@@ -93,4 +93,11 @@ func getServerAddress() string {
 		return "localhost:8080"
 	}
 	return address
+}
+
+func getPassword() string {
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print("Enter your password: ")
+	password, _ := reader.ReadString('\n')
+	return strings.TrimSpace(password)
 }

@@ -76,3 +76,17 @@ getTimestamp() // returns the current timestamp as a string in the format of "02
   - Removed dependency on command-line flags for server address.
   - Reordered logic to prompt for Server Address first, then Username.
 - Tested locally: Verified connection sequence with localhost server.
+
+### {Krishna200608} {#108 Into Fire (Client ver.)}
+
+- Updated client/chat.go:
+  - Added getPassword() function to capture user password from stdin.
+  - Updated connectToEchoServer() signature to accept password parameter.
+  - Modified message listener loop to remove "Server -> Client" prefix and redundant client-side timestamp, aligning output with the required spec.
+
+- Updated client/main.go:
+  - Added call to getPassword() after username prompt.
+  - Passed password to connectToEchoServer().
+- Tested locally: Verified password prompt appears and chat messages display cleanly.
+
+- added .env.example (inside server, to help in local testing for other)
