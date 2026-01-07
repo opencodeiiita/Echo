@@ -88,3 +88,14 @@ getTimestamp() // returns the current timestamp as a string in the format of "02
   - Added call to getPassword() after username prompt.
   - Passed password to connectToEchoServer().
 - Tested locally: Verified password prompt appears and chat messages display cleanly.
+
+### {IIT2023139} {#111 Into Fire (Server ver.)}
+
+- Added password authentication on server join in server/server.js:
+  - First message is treated as `username`, second as `password`.
+  - If user does not exist: server creates a new user with `bcryptjs` hashed password and marks them online.
+  - If user exists: server verifies the provided password against the stored hash; on mismatch, sends an error and disconnects.
+  - Enforces single-session: rejects connections if the same username is already online.
+- Updated server/models/User.js to include required `passwordHash` field; no plaintext passwords stored.
+- Updated client/chat.go to send the password right after the username to match the two-step handshake.
+- Notes for testing: run the server, connect once with a new username to create and store a hash; reconnect with correct and incorrect passwords to observe accept/reject behavior.
