@@ -1,17 +1,14 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 )
 
 func main() {
-	serverURL := flag.String("server", "localhost:8080", "Server URL")
+	// 1. Ask for Server Address first
+	serverURL := getServerAddress()
 
-	flag.Parse()
-
-	fmt.Println("Connecting to server...")
-
+	// 2. Then Ask for Username
 	username := getUsername()
 
 	if username == "" {
@@ -19,7 +16,10 @@ func main() {
 		return
 	}
 
-	err := connectToEchoServer(*serverURL, username)
+	fmt.Println("Connecting to server...")
+
+	// 3. Connect using the gathered info
+	err := connectToEchoServer(serverURL, username)
 	if err != nil {
 		fmt.Println(err)
 		return

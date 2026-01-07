@@ -2,15 +2,16 @@
   "name": "echo-backend",
   "version": "1.0.0",
   "description": "Server for Echo",
-  "main": "src/index.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node src/index.js",
-    "dev": "nodemon src/index.js"
+    "start": "node server.js",
+    "dev": "nodemon server.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "nodemon": "^3.1.11",
     "ws": "^8.18.3"
   }
 }

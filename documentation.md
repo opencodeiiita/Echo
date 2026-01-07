@@ -53,3 +53,14 @@ getTimestamp() // returns the current timestamp as a string in the format of "02
 - Created Chat View with vertical sidebar for channels and message viewport
 - Added navigation logic for cycling through channels and inputs
 - ensured correct alignment of UI elements and clean message formatting
+
+### {Krishna200608} {#104 Eye Spy}
+
+- Updated client/chat.go:
+  - Added getServerAddress() function to capture server URL from user input via stdin.
+  - Implemented default fallback to "localhost:8080" if input is empty.
+  
+- Updated client/main.go:
+  - Removed dependency on command-line flags for server address.
+  - Reordered logic to prompt for Server Address first, then Username.
+- Tested locally: Verified connection sequence with localhost server.

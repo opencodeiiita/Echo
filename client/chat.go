@@ -81,3 +81,16 @@ func getUsername() string {
 func getTimestamp() string {
 	return time.Now().Format("02/01/2006 03:04:05 PM")
 }
+
+func getServerAddress() string {
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print("Enter Server Address (default: localhost:8080): ")
+	address, _ := reader.ReadString('\n')
+	address = strings.TrimSpace(address)
+	
+	// If the user just hits enter, default to localhost:8080
+	if address == "" {
+		return "localhost:8080"
+	}
+	return address
+}
