@@ -88,3 +88,43 @@ getTimestamp() // returns the current timestamp as a string in the format of "02
   - Added call to getPassword() after username prompt.
   - Passed password to connectToEchoServer().
 - Tested locally: Verified password prompt appears and chat messages display cleanly.
+
+### {ishanrajsingh} {#111 Into Fire (Server ver.)}
+
+**Server Implementation (server/server.js):**
+- Implemented complete authentication system with bcrypt password hashing using 10 salt rounds
+- Added AuthService module containing generateHash(), validatePassword(), fetchUserByUsername(), registerNewUser(), and updateUserOnlineStatus() methods
+- Created authenticateUser() function that handles both new user registration and existing user login verification
+- Implemented handleWebSocketConnection() to manage WebSocket lifecycle with authentication as first message requirement
+- Added JSON parsing for authentication payload containing username and password fields
+- Implemented wrong password rejection logic that sends "ERROR: Wrong password" message and immediately closes connection
+- Added broadcastToAllClients() utility function for message distribution excluding sender
+- Integrated MongoDB Atlas connection using Mongoose with proper error handling and connection status logging
+- Added formatTimestamp() utility for consistent Indian Standard Time formatted logs
+- Implemented persistMessage() function to store all chat messages in MongoDB messages collection
+- Added comprehensive error logging for authentication failures, connection issues, and database errors
+- Created session management using Map data structure to track active connections with username associations
+
+**Database Models:**
+- Created models/User.js schema with username (unique indexed), password (bcrypt hash storage), isOnline boolean flag, and connectedAt timestamp
+- Added schema validation for username minimum 3 characters and maximum 30 characters
+- Implemented automatic timestamps with createdAt and updatedAt fields
+- Created models/Message.js schema with sender username, content text, and timestamp fields
+
+**Client Implementation (client/chat.go):**
+- Refactored connectToEchoServer() to accept username and password parameters
+- Implemented AuthCredentials struct with JSON tags for proper marshaling
+- Added JSON payload creation using json.Marshal() for authentication data transmission
+- Modified authentication flow to send credentials as first WebSocket message
+- Added server response parsing to handle success messages and ERROR-prefixed rejection messages
+- Implemented receiveMessagesInBackground() goroutine for concurrent message reception
+- Added sendMessagesFromTerminal() function with /quit command support for graceful disconnection
+- Enhanced error handling with specific messages for authentication failures and connection issues
+- Added input validation loops in getUsername() and getPassword() to prevent empty credentials
+- Implemented proper cleanup on authentication failure with connection closure
+
+**Client Entry Point (client/main.go):**
+- Updated main() flow to collect username and password before connection attempt
+- Added getPassword() function call after getUsername() in credential gathering sequence
+- Modified connectToEchoServer() invocation to pass password parameter
+- Maintained getServerAddress() functionality with localhost:8080 as default

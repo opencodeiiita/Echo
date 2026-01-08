@@ -32,7 +32,7 @@ func connectToEchoServer(serverURL string, username string, password string) err
 
 	fmt.Printf("[%s] ✓ Connected successfully\n", getTimestamp())
 
-	// Prepare authentication payload - FIXED VERSION
+	// Prepare authentication payload
 	authData := map[string]string{
 		"username": username,
 		"password": password,
