@@ -1,124 +1,276 @@
 require("dotenv").config();
 const WebSocket = require("ws");
 const mongoose = require("mongoose");
+const bcrypt = require("bcrypt");
 const User = require("./models/User");
 const Message = require("./models/Message");
 
-const PORT = process.env.PORT || 8080;
-const MONGODB_URI = process.env.MONGODB_URI;
+// Configuration constants
+const SERVER_CONFIG = {
+  port: process.env.PORT || 8080,
+  mongoUri: process.env.MONGODB_URI,
+  bcryptSaltRounds: 10,
+};
 
-const clients = new Map();
+// Active WebSocket connections registry
+const activeConnections = new Map();
 
-function getTimestamp() {
-  return new Date().toLocaleString();
-}
+// Utility: Generate formatted timestamp
+const formatTimestamp = () => {
+  const now = new Date();
+  return now.toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  });
+};
 
-async function connectDB() {
+// Database connection handler
+// Database connection handler
+async function initializeMongoDB() {
   try {
-    await mongoose.connect(MONGODB_URI);
-    console.log(`[${getTimestamp()}] Connected to MongoDB`);
-  } catch (error) {
-    console.error(`[${getTimestamp()}] MongoDB connection error:`, error.message);
+    console.log(`[${formatTimestamp()}] Connecting to MongoDB Atlas...`);
+    await mongoose.connect(SERVER_CONFIG.mongoUri);  // ✅ No options needed in Mongoose 6+
+    console.log(`[${formatTimestamp()}] ✓ MongoDB connection established`);
+  } catch (err) {
+    console.error(`[${formatTimestamp()}] ✗ MongoDB connection failed:`, err.message);
+    console.error("Full error:", err);
     process.exit(1);
   }
 }
 
-async function logUserConnection(username) {
-  try {
-    await User.findOneAndUpdate(
+
+// Authentication module
+const AuthService = {
+  // Generate secure password hash
+  async generateHash(plainPassword) {
+    return await bcrypt.hash(plainPassword, SERVER_CONFIG.bcryptSaltRounds);
+  },
+
+  // Validate password against stored hash
+  async validatePassword(plainPassword, storedHash) {
+    return await bcrypt.compare(plainPassword, storedHash);
+  },
+
+  // Retrieve user from database
+  async fetchUserByUsername(username) {
+    return await User.findOne({ username }).lean();
+  },
+
+  // Register new user in database
+  async registerNewUser(username, hashedPassword) {
+    const newUser = await User.create({
+      username,
+      password: hashedPassword,
+      connectedAt: new Date(),
+      isOnline: true,
+    });
+    console.log(`[${formatTimestamp()}] ✓ New user registered: "${username}"`);
+    console.log(`[${formatTimestamp()}]   Password hash: ${hashedPassword.substring(0, 25)}...`);
+    return newUser;
+  },
+
+  // Update existing user's online status
+  async updateUserOnlineStatus(username, isOnline) {
+    return await User.findOneAndUpdate(
       { username },
-      { username, connectedAt: new Date(), isOnline: true },
-      { upsert: true, new: true }
+      { 
+        isOnline, 
+        connectedAt: isOnline ? new Date() : undefined 
+      },
+      { new: true }
     );
-    console.log(`[${getTimestamp()}] User "${username}" logged to database`);
-  } catch (error) {
-    console.error(`[${getTimestamp()}] Error logging user:`, error.message);
-  }
+  },
+
+  // Main authentication logic
+  async authenticateUser(username, password) {
+    const user = await this.fetchUserByUsername(username);
+
+    if (!user) {
+      // New user scenario - create account
+      const hashedPassword = await this.generateHash(password);
+      await this.registerNewUser(username, hashedPassword);
+      return { 
+        success: true, 
+        isNewUser: true, 
+        message: `Welcome ${username}! Your account has been created.` 
+      };
+    }
+
+    // Existing user scenario
+    if (user.isOnline) {
+      return { 
+        success: false, 
+        message: `ERROR: User "${username}" is already connected from another session` 
+      };
+    }
+
+    // Verify password
+    const isPasswordCorrect = await this.validatePassword(password, user.password);
+    
+    if (!isPasswordCorrect) {
+      console.log(`[${formatTimestamp()}] ✗ Failed login attempt for "${username}" - Wrong password`);
+      return { 
+        success: false, 
+        message: "ERROR: Wrong password" 
+      };
+    }
+
+    // Update online status
+    await this.updateUserOnlineStatus(username, true);
+    console.log(`[${formatTimestamp()}] ✓ User "${username}" authenticated successfully`);
+    
+    return { 
+      success: true, 
+      isNewUser: false, 
+      message: `Welcome back, ${username}!` 
+    };
+  },
+};
+
+// Message broadcasting utility
+function broadcastToAllClients(wsServer, message, excludeClient = null) {
+  wsServer.clients.forEach((client) => {
+    if (client !== excludeClient && client.readyState === WebSocket.OPEN) {
+      client.send(message);
+    }
+  });
 }
 
-async function isUsernameTaken(username) {
-  const user = await User.findOne({ username, isOnline: true });
-  return !!user;
-}
-
-async function markUserOffline(username) {
+// Store message in database
+async function persistMessage(senderUsername, messageContent) {
   try {
-    await User.findOneAndUpdate({ username }, { isOnline: false });
-  } catch (error) {
-    console.error(`[${getTimestamp()}] Error marking user offline:`, error.message);
+    await Message.create({
+      sender: senderUsername,
+      content: messageContent,
+      timestamp: new Date(),
+    });
+  } catch (err) {
+    console.error(`[${formatTimestamp()}] ✗ Failed to save message:`, err.message);
   }
 }
 
-async function logMessage(sender, content) {
-  try {
-    await Message.create({ sender, content, timestamp: new Date() });
-  } catch (error) {
-    console.error(`[${getTimestamp()}] Error logging message:`, error.message);
-  }
-}
+// WebSocket connection handler
+function handleWebSocketConnection(ws, wsServer) {
+  let authenticatedUsername = null;
+  let hasCompletedAuth = false;
 
-async function startServer() {
-  await connectDB();
+  // Listen for initial authentication message
+  ws.once("message", async (rawData) => {
+    try {
+      // Debug: Show what we received
+      console.log(`[${formatTimestamp()}] 📥 Received raw data:`, rawData);
+      console.log(`[${formatTimestamp()}] 📥 Data type:`, typeof rawData);
+      console.log(`[${formatTimestamp()}] 📥 Data as string:`, rawData.toString());
+      
+      const dataString = rawData.toString().trim();
+      console.log(`[${formatTimestamp()}] 📥 Trimmed string:`, dataString);
+      
+      const authPayload = JSON.parse(dataString);
+      console.log(`[${formatTimestamp()}] 📥 Parsed JSON:`, authPayload);
+      
+      const { username, password } = authPayload;
 
-  const wss = new WebSocket.Server({ port: PORT });
-
-  wss.on("connection", (ws) => {
-    ws.once("message", async (message) => {
-      const username = message.toString().trim();
-
-      const taken = await isUsernameTaken(username);
-      if (taken) {
-        ws.send(`ERROR: Username "${username}" is already taken. Please reconnect with a different username.`);
+      // Validate credentials presence
+      if (!username?.trim() || !password?.trim()) {
+        ws.send("ERROR: Both username and password are required");
         ws.close();
-        console.log(`[${getTimestamp()}] Rejected connection: username "${username}" is taken`);
         return;
       }
 
-      await logUserConnection(username);
+      // Attempt authentication
+      const authResult = await AuthService.authenticateUser(
+        username.trim(),
+        password.trim()
+      );
 
-      clients.set(ws, username);
-      console.log(`[${getTimestamp()}] ${username} joined`);
-
-      wss.clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
-          client.send(`${username} has joined`);
-        }
-      });
-
-      ws.on("message", async (message) => {
-        const text = message.toString().trim();
-        const username = clients.get(ws);
-        const time = getTimestamp();
-
-        await logMessage(username, text);
-
-        const finalMessage = `${time}: ${username} said: ${text}`;
-        wss.clients.forEach((client) => {
-          if (client.readyState === WebSocket.OPEN) {
-            client.send(finalMessage);
-          }
-        });
-      });
-    });
-
-    ws.on("close", async () => {
-      const username = clients.get(ws);
-      if (username) {
-        console.log(`[${getTimestamp()}] ${username} disconnected`);
-        
-        await markUserOffline(username);
-
-        wss.clients.forEach((client) => {
-          if (client.readyState === WebSocket.OPEN) {
-            client.send(`${username} has left`);
-          }
-        });
-        clients.delete(ws);
+      if (!authResult.success) {
+        ws.send(authResult.message);
+        ws.close();
+        return;
       }
-    });
+
+      // Authentication successful
+      hasCompletedAuth = true;
+      authenticatedUsername = username.trim();
+      activeConnections.set(ws, authenticatedUsername);
+
+      // Send success message to client
+      ws.send(authResult.message);
+
+      // Notify all clients about new user
+      console.log(`[${formatTimestamp()}] ✓ "${authenticatedUsername}" joined the chat`);
+      broadcastToAllClients(wsServer, `${authenticatedUsername} has joined the chat`, ws);
+
+      // Set up message handler for authenticated user
+      ws.on("message", async (msgData) => {
+        if (!hasCompletedAuth) return;
+
+        const messageText = msgData.toString().trim();
+        if (!messageText) return;
+
+        const username = activeConnections.get(ws);
+        const timestamp = formatTimestamp();
+
+        // Save to database
+        await persistMessage(username, messageText);
+
+        // Broadcast to all clients
+        const formattedMessage = `[${timestamp}] ${username}: ${messageText}`;
+        broadcastToAllClients(wsServer, formattedMessage);
+      });
+
+    } catch (parseError) {
+      console.error(`[${formatTimestamp()}] ✗ Parse error:`, parseError.message);
+      console.error(`[${formatTimestamp()}] ✗ Received data:`, rawData.toString());
+      console.error(`[${formatTimestamp()}] ✗ Full error:`, parseError);
+      ws.send("ERROR: Invalid authentication format. Send JSON with username and password.");
+      ws.close();
+    }
   });
 
-  console.log(`[${getTimestamp()}] WebSocket server running on port ${PORT}`);
+  // Handle client disconnect
+  ws.on("close", async () => {
+    if (authenticatedUsername) {
+      console.log(`[${formatTimestamp()}] ✗ "${authenticatedUsername}" disconnected`);
+      
+      // Update database
+      await AuthService.updateUserOnlineStatus(authenticatedUsername, false);
+      
+      // Notify other clients
+      broadcastToAllClients(wsServer, `${authenticatedUsername} has left the chat`);
+      
+      // Clean up
+      activeConnections.delete(ws);
+    }
+  });
+
+  // Handle errors
+  ws.on("error", (err) => {
+    console.error(`[${formatTimestamp()}] ✗ WebSocket error:`, err.message);
+  });
 }
 
-startServer();
+
+// Initialize and start server
+async function startEchoServer() {
+  await initializeMongoDB();
+
+  const wsServer = new WebSocket.Server({ port: SERVER_CONFIG.port });
+
+  wsServer.on("connection", (ws) => {
+    handleWebSocketConnection(ws, wsServer);
+  });
+
+  console.log(`[${formatTimestamp()}] ✓ Echo WebSocket server listening on port ${SERVER_CONFIG.port}`);
+}
+
+// Launch server
+startEchoServer().catch((err) => {
+  console.error(`[${formatTimestamp()}] ✗ Server startup failed:`, err);
+  process.exit(1);
+});
