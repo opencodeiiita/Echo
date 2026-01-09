@@ -30,10 +30,18 @@ func connectToEchoServer(serverURL string, username string, password string) err
 
 	}
 	fmt.Printf("[%s] ✓ Username sent: %s\n", getTimestamp(), username)
-	fmt.Println("-------------------------------------------")
-	fmt.Println("Listening for messages from server...")
+	// Send password immediately after username for authentication
+	if err := c.WriteMessage(websocket.TextMessage, []byte(password)); err != nil {
+		return fmt.Errorf("Failed to send password to server: %v", err)
+	}
 
-	// Run a goroutine so incoming messages are received in background while user types
+	readyCh := make(chan struct{})
+	errCh := make(chan error, 1)
+
+	fmt.Println("-------------------------------------------")
+	fmt.Println("Waiting for authentication...")
+
+	// Goroutine to read incoming messages
 	go func() {
 		for {
 			messageType, data, err := c.ReadMessage()
@@ -43,16 +51,43 @@ func connectToEchoServer(serverURL string, username string, password string) err
 				return
 			}
 			if err != nil {
-				fmt.Printf("error: %v\n", err)
-				break
+				errCh <- err
+				return
 			}
 			if messageType == websocket.TextMessage {
 				message := string(data)
-				// We print the message directly to avoid double timestamps/prefixes
-				fmt.Printf("\r%s%s\nEnter Message : ", "\033[K", message)
+				if message == "[[AUTH_OK]]" {
+					// Signal that we can start sending
+					select {
+					case <-readyCh:
+						// already closed
+					default:
+						close(readyCh)
+					}
+					fmt.Println("Authenticated. Listening for messages...")
+					continue
+				}
+				if strings.HasPrefix(message, "ERROR:") {
+					fmt.Println(message)
+					errCh <- fmt.Errorf(message)
+					return
+				}
+				// Print normal chat messages
+				fmt.Printf("\r%s%s\nEnter Message : ", "\u001b[K", message)
 			}
 		}
 	}()
+
+	// Wait until authenticated or error
+	select {
+	case <-readyCh:
+		// proceed
+	case err := <-errCh:
+		return err
+	}
+
+	fmt.Println("-------------------------------------------")
+	fmt.Println("You can chat now.")
 
 	// Read for terminal input
 	reader := bufio.NewReader(os.Stdin)
@@ -62,7 +97,12 @@ func connectToEchoServer(serverURL string, username string, password string) err
 		fmt.Print("Enter Message : ")
 		text, _ := reader.ReadString('\n')
 		text = strings.TrimSpace(text)
-		c.WriteMessage(websocket.TextMessage, []byte(text))
+		if text == "" {
+			continue
+		}
+		if err := c.WriteMessage(websocket.TextMessage, []byte(text)); err != nil {
+			return fmt.Errorf("failed to send message: %v", err)
+		}
 	}
 	return nil
 
