@@ -71,7 +71,6 @@ getTimestamp() // returns the current timestamp as a string in the format of "02
 - Updated client/chat.go:
   - Added getServerAddress() function to capture server URL from user input via stdin.
   - Implemented default fallback to "localhost:8080" if input is empty.
-  
 - Updated client/main.go:
   - Removed dependency on command-line flags for server address.
   - Reordered logic to prompt for Server Address first, then Username.
@@ -80,6 +79,7 @@ getTimestamp() // returns the current timestamp as a string in the format of "02
 ### {Krishna200608} {#108 Into Fire (Client ver.)}
 
 - Updated client/chat.go:
+
   - Added getPassword() function to capture user password from stdin.
   - Updated connectToEchoServer() signature to accept password parameter.
   - Modified message listener loop to remove "Server -> Client" prefix and redundant client-side timestamp, aligning output with the required spec.
@@ -88,3 +88,30 @@ getTimestamp() // returns the current timestamp as a string in the format of "02
   - Added call to getPassword() after username prompt.
   - Passed password to connectToEchoServer().
 - Tested locally: Verified password prompt appears and chat messages display cleanly.
+
+### {dwivediprashant} {#111 Into Fire (Server ver.)}
+
+- Updated server/server.js:
+
+  - Added bcrypt dependency for password hashing.
+  - Implemented authentication functions: hashPassword(), verifyPassword(), findUser(), createUser().
+  - Modified connection logic to handle JSON authentication data.
+  - Added proper error handling for wrong passwords and duplicate online users.
+
+- Updated server/models/User.js:
+
+  - Added password field to user schema for storing hashed passwords.
+
+- Updated server/package.json:
+
+  - Added bcrypt dependency for secure password hashing.
+
+- Updated client/chat.go:
+
+  - Added JSON encoding for authentication data.
+  - Modified connectToEchoServer() to send {"username": "...", "password": "..."}.
+  - Added input validation to prevent empty usernames and passwords.
+  - Implemented proper authentication error handling with clean exit on failure.
+  - Added success message display for correct authentication.
+
+- Tested locally: Verified new user registration, existing user login, wrong password rejection, and proper error handling.
