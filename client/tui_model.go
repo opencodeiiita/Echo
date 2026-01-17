@@ -392,20 +392,18 @@ func (m mainModel) loginView() string {
 
 	// Animated decorative top border
 	topDecor := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#7D56F4")).
+		Foreground(m.styles.PrimaryColor).
 		Render("═══════════════════════════════════════════════")
 	b.WriteString(topDecor + "\n")
 
-	// Logo with gradient-like effect
+	// Logo with theme color
 	logoLines := strings.Split(echoLogo, "\n")
-	colors := []string{"#9D7BF7", "#8B68F0", "#7D56F4", "#6B44E8", "#5932DC", "#4720D0"}
-	for i, line := range logoLines {
+	for _, line := range logoLines {
 		if line == "" {
 			continue
 		}
-		colorIdx := i % len(colors)
 		lineStyle := lipgloss.NewStyle().
-			Foreground(lipgloss.Color(colors[colorIdx])).
+			Foreground(m.styles.PrimaryColor).
 			Bold(true)
 		b.WriteString(lineStyle.Render(line) + "\n")
 	}
@@ -422,7 +420,7 @@ func (m mainModel) loginView() string {
 
 	// Input fields with animated focus indicator
 	labelStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#00D9FF")).
+		Foreground(m.styles.SecondaryColor).
 		Bold(true).
 		Width(50).
 		Align(lipgloss.Center)
@@ -511,7 +509,7 @@ func (m mainModel) loginView() string {
 	// Wrap in fancy login box
 	loginBox := lipgloss.NewStyle().
 		Border(lipgloss.DoubleBorder()).
-		BorderForeground(lipgloss.Color("#7D56F4")).
+		BorderForeground(m.styles.PrimaryColor).
 		Padding(1, 4).
 		Align(lipgloss.Center)
 
@@ -527,24 +525,24 @@ func (m mainModel) renderConnectButton() string {
 		pulse := pulseFrames[m.pulseFrame]
 
 		topBorder := lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#00D9FF")).
+			Foreground(m.styles.SecondaryColor).
 			Render("╔════════════════════════╗")
 
 		middleLine := lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#00D9FF")).
+			Foreground(m.styles.SecondaryColor).
 			Render("║") +
 			lipgloss.NewStyle().
-				Background(lipgloss.Color("#7D56F4")).
+				Background(m.styles.PrimaryColor).
 				Foreground(lipgloss.Color("#FFFFFF")).
 				Bold(true).
 				Padding(0, 1).
 				Render(" "+pulse+" CONNECT "+pulse+" ") +
 			lipgloss.NewStyle().
-				Foreground(lipgloss.Color("#00D9FF")).
+				Foreground(m.styles.SecondaryColor).
 				Render("║")
 
 		bottomBorder := lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#00D9FF")).
+			Foreground(m.styles.SecondaryColor).
 			Render("╚════════════════════════╝")
 
 		return topBorder + "\n" + middleLine + "\n" + bottomBorder
@@ -610,7 +608,7 @@ func (m mainModel) connectingView() string {
 
 	box := lipgloss.NewStyle().
 		Border(lipgloss.DoubleBorder()).
-		BorderForeground(lipgloss.Color("#7D56F4")).
+		BorderForeground(m.styles.PrimaryColor).
 		Padding(2, 4).
 		Align(lipgloss.Center).
 		Render(content)
@@ -623,8 +621,8 @@ func (m mainModel) connectingView() string {
 func (m mainModel) chatViewRender() string {
 	var b strings.Builder
 
-	// Header bar - all purple background with white text
-	headerBg := lipgloss.Color("#7D56F4")
+	// Header bar - uses theme primary color
+	headerBg := m.styles.PrimaryColor
 	headerFg := lipgloss.Color("#FFFFFF")
 
 	// Pulsing online indicator (green dot)
@@ -689,16 +687,16 @@ func (m mainModel) chatViewRender() string {
 	if elapsedSeconds < 10 {
 		// Fast animation - every frame
 		if m.animFrame%2 == 0 {
-			inputBorderColor = "#00D9FF"
+			inputBorderColor = string(m.styles.SecondaryColor)
 		} else {
-			inputBorderColor = "#7D56F4"
+			inputBorderColor = string(m.styles.PrimaryColor)
 		}
 	} else {
 		// Slow animation - every 4 frames
 		if m.animFrame%8 < 4 {
-			inputBorderColor = "#00D9FF"
+			inputBorderColor = string(m.styles.SecondaryColor)
 		} else {
-			inputBorderColor = "#5B4252"
+			inputBorderColor = "#3B4252"
 		}
 	}
 

@@ -2,18 +2,13 @@ package main
 
 import "github.com/charmbracelet/lipgloss"
 
-// Color palette - Modern cyberpunk/terminal aesthetic
+// Base colors that don't change with themes
 var (
-	// Gradient colors
-	primaryColor   = lipgloss.Color("#7D56F4") // Purple
-	secondaryColor = lipgloss.Color("#00D9FF") // Cyan
-	accentColor    = lipgloss.Color("#FF6B9D") // Pink
-	successColor   = lipgloss.Color("#00FF88") // Green
-	warningColor   = lipgloss.Color("#FFB800") // Amber
-	errorColor     = lipgloss.Color("#FF4757") // Red
-	dimColor       = lipgloss.Color("#6B7280") // Gray
-	bgDark         = lipgloss.Color("#0D1117") // Dark background
-	bgMedium       = lipgloss.Color("#161B22") // Medium background
+	successColor = lipgloss.Color("#00FF88") // Green
+	errorColor   = lipgloss.Color("#FF4757") // Red
+	dimColor     = lipgloss.Color("#6B7280") // Gray
+	bgDark       = lipgloss.Color("#0D1117") // Dark background
+	bgMedium     = lipgloss.Color("#161B22") // Medium background
 )
 
 type Styles struct {
@@ -44,10 +39,22 @@ type Styles struct {
 	Separator  lipgloss.Style
 	StatusBar  lipgloss.Style
 	OnlineUser lipgloss.Style
+
+	// Theme colors for use in tui_model.go
+	PrimaryColor   lipgloss.Color
+	SecondaryColor lipgloss.Color
 }
 
 func InitStyles(cfg Config) Styles {
+	// Use theme colors from config
+	primaryColor := lipgloss.Color(cfg.WindowColor)
+	secondaryColor := lipgloss.Color(cfg.UserColor)
+
 	return Styles{
+		// Store colors for external use
+		PrimaryColor:   primaryColor,
+		SecondaryColor: secondaryColor,
+
 		// Full app container
 		App: lipgloss.NewStyle().
 			Background(bgDark),
@@ -63,7 +70,7 @@ func InitStyles(cfg Config) Styles {
 		// Chat container
 		ChatContainer: lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color(cfg.WindowColor)).
+			BorderForeground(primaryColor).
 			Padding(0, 1),
 
 		// ASCII Logo style
@@ -88,10 +95,10 @@ func InitStyles(cfg Config) Styles {
 		// Window with gradient border
 		Window: lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color(cfg.WindowColor)).
+			BorderForeground(primaryColor).
 			Padding(1, 2),
 
-		// Header bar
+		// Header bar - uses theme primary color
 		Header: lipgloss.NewStyle().
 			Background(primaryColor).
 			Foreground(lipgloss.Color("#FFFFFF")).
@@ -131,7 +138,7 @@ func InitStyles(cfg Config) Styles {
 
 		// User name in messages
 		User: lipgloss.NewStyle().
-			Foreground(lipgloss.Color(cfg.UserColor)).
+			Foreground(secondaryColor).
 			Bold(true),
 
 		// Timestamp
