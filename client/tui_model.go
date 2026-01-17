@@ -80,10 +80,11 @@ type mainModel struct {
 	chatStartTime time.Time // Track when chat started for adaptive animation
 
 	// Connection
-	conn   *websocket.Conn
-	err    error
-	width  int
-	height int
+	conn     *websocket.Conn
+	err      error
+	width    int
+	height   int
+	username string // Store current username for message alignment
 
 	// Status
 	isConnecting bool
@@ -207,6 +208,18 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				cmds = append(cmds, m.updateFocus())
 			}
 
+		case tea.KeySpace:
+			// Space to toggle password visibility in login view
+			if m.state == loginView && m.focusIndex == 3 {
+				m.showPassword = !m.showPassword
+				if m.showPassword {
+					m.passInput.EchoMode = textinput.EchoNormal
+				} else {
+					m.passInput.EchoMode = textinput.EchoPassword
+				}
+				return m, nil
+			}
+
 		case tea.KeyEnter:
 			// Check for Alt+Enter to insert newline in chat view
 			// Note: Shift+Enter is not reliably detectable in terminals
@@ -310,7 +323,8 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.conn = msg.conn
 		m.isConnecting = false
 		m.err = nil
-		m.chatStartTime = time.Now() // Start tracking for adaptive animation
+		m.username = m.userInput.Value() // Store username for message alignment
+		m.chatStartTime = time.Now()     // Start tracking for adaptive animation
 
 		// Add animated welcome message
 		welcomeMsg := ChatMessage{
@@ -396,14 +410,22 @@ func (m mainModel) loginView() string {
 		Render("═══════════════════════════════════════════════")
 	b.WriteString(topDecor + "\n")
 
-	// Logo with theme color
+	// Enhanced logo with gradient effect
 	logoLines := strings.Split(echoLogo, "\n")
-	for _, line := range logoLines {
+	gradientColors := []string{
+		string(m.styles.PrimaryColor),
+		string(m.styles.SecondaryColor),
+		string(m.styles.PrimaryColor),
+	}
+
+	for idx, line := range logoLines {
 		if line == "" {
 			continue
 		}
+		// Create gradient effect by cycling colors
+		colorIdx := (idx + m.animFrame) % len(gradientColors)
 		lineStyle := lipgloss.NewStyle().
-			Foreground(m.styles.PrimaryColor).
+			Foreground(lipgloss.Color(gradientColors[colorIdx])).
 			Bold(true)
 		b.WriteString(lineStyle.Render(line) + "\n")
 	}
@@ -484,24 +506,32 @@ func (m mainModel) loginView() string {
 	b.WriteString(buttonContainer.Render(button))
 	b.WriteString("\n\n")
 
-	// Error message
+	// Enhanced error message with better styling
 	if m.err != nil {
-		errStyle := lipgloss.NewStyle().
+		errBox := lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("#FF4757")).
 			Foreground(lipgloss.Color("#FF4757")).
+			Background(lipgloss.Color("#2D1B1B")).
 			Bold(true).
 			Width(50).
-			Align(lipgloss.Center)
-		b.WriteString(errStyle.Render("! " + m.err.Error()))
+			Align(lipgloss.Center).
+			Padding(0, 1)
+
+		errIcon := "⚠"
+		errText := fmt.Sprintf("%s %s", errIcon, m.err.Error())
+		b.WriteString(errBox.Render(errText))
 		b.WriteString("\n\n")
 	}
 
-	// Animated hints
+	// Enhanced hints with better formatting
 	hintStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#6B7280")).
 		Italic(true).
 		Width(50).
 		Align(lipgloss.Center)
-	b.WriteString(hintStyle.Render("Tab: Navigate | Enter: Select | Esc: Quit"))
+	hintText := fmt.Sprintf("Tab: Navigate | Enter: Select | Space: Toggle Password | Esc: Quit")
+	b.WriteString(hintStyle.Render(hintText))
 
 	// Bottom decorative border
 	b.WriteString("\n" + topDecor)
@@ -575,40 +605,65 @@ func (m mainModel) renderConnectButton() string {
 func (m mainModel) connectingView() string {
 	var b strings.Builder
 
-	// Animated connecting box
+	// Enhanced animated connecting view
 	frame := connectFrames[m.animFrame]
 
-	title := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#7D56F4")).
-		Bold(true).
-		Render("CONNECTING")
+	// Animated title with gradient
+	titleStyle := lipgloss.NewStyle().
+		Foreground(m.styles.PrimaryColor).
+		Bold(true)
+	title := titleStyle.Render("CONNECTING")
 
-	animation := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#00D9FF")).
-		Bold(true).
-		Render(frame)
+	// Enhanced animation with theme colors
+	animationStyle := lipgloss.NewStyle().
+		Foreground(m.styles.SecondaryColor).
+		Bold(true)
+	animation := animationStyle.Render(frame)
 
 	spinnerView := m.spinner.View()
+
+	// Enhanced connection info display
+	infoStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#6B7280")).
+		Italic(true)
+
+	serverLabel := lipgloss.NewStyle().
+		Foreground(m.styles.PrimaryColor).
+		Bold(true).
+		Render("Server:")
+	serverValue := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#E5E7EB")).
+		Render(m.serverInput.Value())
+
+	userLabel := lipgloss.NewStyle().
+		Foreground(m.styles.PrimaryColor).
+		Bold(true).
+		Render("User:")
+	userValue := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#E5E7EB")).
+		Render(m.userInput.Value())
 
 	content := fmt.Sprintf(`
     %s %s
 
     %s
 
-    Establishing secure connection...
-    Server: %s
-    User: %s
+    %s
+    %s %s
+    %s %s
 `,
 		spinnerView,
 		title,
 		animation,
-		m.serverInput.Value(),
-		m.userInput.Value(),
+		infoStyle.Render("Establishing secure connection..."),
+		serverLabel, serverValue,
+		userLabel, userValue,
 	)
 
 	box := lipgloss.NewStyle().
 		Border(lipgloss.DoubleBorder()).
 		BorderForeground(m.styles.PrimaryColor).
+		Background(lipgloss.Color("#0D1117")).
 		Padding(2, 4).
 		Align(lipgloss.Center).
 		Render(content)
@@ -621,95 +676,161 @@ func (m mainModel) connectingView() string {
 func (m mainModel) chatViewRender() string {
 	var b strings.Builder
 
-	// Header bar - uses theme primary color
-	headerBg := m.styles.PrimaryColor
+	// Clean, modern header with dark background
+	accentColor := m.styles.PrimaryColor
+	headerBg := lipgloss.Color("#0D1117") // Dark background
 	headerFg := lipgloss.Color("#FFFFFF")
+	dimFg := lipgloss.Color("#FFFFFFB0")
 
-	// Decorative left border
-	leftDecor := lipgloss.NewStyle().
-		Background(headerBg).
-		Foreground(headerFg).
-		Bold(true).
-		Render(" ◆ ")
+	// Calculate session duration
+	sessionDuration := time.Since(m.chatStartTime)
+	hours := int(sessionDuration.Hours())
+	minutes := int(sessionDuration.Minutes()) % 60
+	var sessionTime string
+	if hours > 0 {
+		sessionTime = fmt.Sprintf("%dh %dm", hours, minutes)
+	} else {
+		sessionTime = fmt.Sprintf("%dm", minutes)
+	}
 
-	// ECHO branding with chat icon
-	echoLabel := lipgloss.NewStyle().
-		Background(headerBg).
-		Foreground(headerFg).
-		Bold(true).
-		Render("ECHO")
+	// App name - ECHO in accent color (no background)
+	appNameStyle := lipgloss.NewStyle().
+		Foreground(accentColor).
+		Bold(true)
+	appName := " " + appNameStyle.Render("ECHO") + " "
 
-	// Separator
-	sep := lipgloss.NewStyle().
-		Background(headerBg).
-		Foreground(lipgloss.Color("#FFFFFF80")).
-		Render(" │ ")
-
-	// Online indicator with pulsing dot
-	dotStyle := lipgloss.NewStyle().
-		Background(headerBg).
+	// Status indicator - center left
+	statusDotStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#00FF88")).
 		Bold(true)
-	onlineDot := dotStyle.Render(pulseFrames[m.pulseFrame])
+	statusTextStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#00FF88"))
 
-	// "Connected as" label
-	connectedLabel := lipgloss.NewStyle().
-		Background(headerBg).
-		Foreground(lipgloss.Color("#FFFFFFB0")).
-		Italic(true).
-		Render("Connected as ")
+	onlineDot := statusDotStyle.Render(pulseFrames[m.pulseFrame])
+	statusText := statusTextStyle.Render("ONLINE")
+	statusSection := onlineDot + " " + statusText
 
-	// Username with highlight
-	username := lipgloss.NewStyle().
-		Background(headerBg).
+	// User info - right side
+	usernameStyle := lipgloss.NewStyle().
 		Foreground(headerFg).
-		Bold(true).
-		Render(m.userInput.Value())
+		Bold(true)
+	username := usernameStyle.Render(m.userInput.Value())
 
-	// Right decorative element
-	rightDecor := lipgloss.NewStyle().
-		Background(headerBg).
-		Foreground(headerFg).
-		Bold(true).
-		Render(" ◆")
+	// Session info - far right
+	sessionStyle := lipgloss.NewStyle().
+		Foreground(dimFg)
+	sessionInfo := " " + sessionStyle.Render("• "+sessionTime)
 
-	// Compose header content
-	headerContent := leftDecor + echoLabel + sep + onlineDot + " " + connectedLabel + username + rightDecor
+	// Build header with clean spacing
+	leftPart := appName
+	centerPart := statusSection
+	rightPart := username + sessionInfo
 
-	// Full width header
+	// Calculate widths
+	leftWidth := lipgloss.Width(leftPart)
+	centerWidth := lipgloss.Width(centerPart)
+	rightWidth := lipgloss.Width(rightPart)
+
+	// Calculate spacing for balanced layout
+	totalContentWidth := leftWidth + centerWidth + rightWidth
+	availableSpace := m.width - totalContentWidth - 4
+
+	// Use fixed spacing between sections
+	spacing1 := 3
+	spacing2 := 3
+	spacing3 := availableSpace - spacing1 - spacing2
+
+	if spacing3 < 2 {
+		spacing3 = 2
+	}
+
+	// Build header line
+	headerLine := leftPart +
+		strings.Repeat(" ", spacing1) +
+		centerPart +
+		strings.Repeat(" ", spacing2) +
+		strings.Repeat(" ", spacing3) +
+		rightPart
+
+	// Apply header styling with dark background
 	headerStyle := lipgloss.NewStyle().
 		Background(headerBg).
 		Foreground(headerFg).
-		Width(m.width-2).
+		Width(m.width).
 		Padding(0, 1)
 
-	b.WriteString(headerStyle.Render(headerContent))
+	b.WriteString(headerStyle.Render(headerLine))
 	b.WriteString("\n")
 
-	// Chat viewport with styled border
+	// Accent color separator line
+	separatorLine := lipgloss.NewStyle().
+		Foreground(accentColor).
+		Render(strings.Repeat("─", m.width))
+	b.WriteString(separatorLine + "\n")
+
+	// Chat viewport with enhanced styled border
+	chatContent := m.viewport.View()
+
+	// Add subtle scroll indicators
+	var topIndicator string
+	var bottomIndicator string
+
+	// Check if scrolled from top
+	if m.viewport.YOffset > 0 {
+		topIndicator = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#6B7280")).
+			Italic(true).
+			Align(lipgloss.Center).
+			Width(m.width - 4).
+			Render("↑ More messages above")
+	}
+
+	// Check if not at bottom (simplified - if there's more content)
+	totalLines := len(strings.Split(m.renderMessages(), "\n"))
+	visibleLines := m.viewport.Height
+	if m.viewport.YOffset+visibleLines < totalLines-2 {
+		bottomIndicator = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#6B7280")).
+			Italic(true).
+			Align(lipgloss.Center).
+			Width(m.width - 4).
+			Render("↓ More messages below")
+	}
+
 	chatBorder := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("#3B4252")).
-		Width(m.width - 4).
-		Height(m.viewport.Height + 2)
+		Width(m.width-4).
+		Height(m.viewport.Height+2).
+		Padding(0, 1)
 
-	b.WriteString(chatBorder.Render(m.viewport.View()))
+	chatBox := chatBorder.Render(chatContent)
+
+	// Add indicators if present
+	if topIndicator != "" {
+		b.WriteString(topIndicator + "\n")
+	}
+	b.WriteString(chatBox)
+	if bottomIndicator != "" {
+		b.WriteString("\n" + bottomIndicator)
+	}
 	b.WriteString("\n")
 
-	// Adaptive input border animation
-	// Fast for first 10 seconds, then slow
+	// Enhanced adaptive input border animation with smoother transitions
 	elapsedSeconds := time.Since(m.chatStartTime).Seconds()
 	var inputBorderColor string
 	if elapsedSeconds < 10 {
-		// Fast animation - every frame
-		if m.animFrame%2 == 0 {
-			inputBorderColor = string(m.styles.SecondaryColor)
-		} else {
-			inputBorderColor = string(m.styles.PrimaryColor)
+		// Fast animation - smooth color transition
+		colors := []string{
+			string(m.styles.SecondaryColor),
+			string(m.styles.PrimaryColor),
+			string(m.styles.SecondaryColor),
 		}
+		colorIdx := m.animFrame % len(colors)
+		inputBorderColor = colors[colorIdx]
 	} else {
-		// Slow animation - every 4 frames
-		if m.animFrame%8 < 4 {
+		// Slow animation - subtle pulsing
+		if m.animFrame%10 < 5 {
 			inputBorderColor = string(m.styles.SecondaryColor)
 		} else {
 			inputBorderColor = "#3B4252"
@@ -725,11 +846,14 @@ func (m mainModel) chatViewRender() string {
 	b.WriteString(inputStyle.Render(m.msgInput.View()))
 	b.WriteString("\n")
 
-	// Footer hints with keyboard icons
+	// Enhanced footer with better styling
+	footerContent := fmt.Sprintf(" [Enter] Send | [Alt+Enter] New Line | [PgUp/PgDn] Scroll | [Ctrl+U] Clear | [Esc] Quit")
 	footerStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#6B7280")).
-		Italic(true)
-	b.WriteString(footerStyle.Render(" [Enter] Send | [Up/Down] Scroll | [Esc] Quit"))
+		Italic(true).
+		Background(lipgloss.Color("#0D1117")).
+		Padding(0, 1)
+	b.WriteString(footerStyle.Render(footerContent))
 
 	return b.String()
 }
@@ -737,12 +861,17 @@ func (m mainModel) chatViewRender() string {
 func (m mainModel) getInputStyle(index int) lipgloss.Style {
 	baseWidth := 50
 	if m.focusIndex == index {
-		// Animated glow effect for focused input
-		glowColors := []string{"#00D9FF", "#00C8EE", "#00B7DD", "#00C8EE"}
+		// Enhanced animated glow effect with theme colors
+		glowColors := []string{
+			string(m.styles.SecondaryColor),
+			string(m.styles.PrimaryColor),
+			string(m.styles.SecondaryColor),
+		}
 		colorIdx := m.animFrame % len(glowColors)
 		return lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color(glowColors[colorIdx])).
+			Background(lipgloss.Color("#0D1117")).
 			Width(baseWidth).
 			Padding(0, 1)
 	}
@@ -758,28 +887,55 @@ func (m mainModel) renderMessages() string {
 
 	for i, msg := range m.messages {
 		if msg.IsSystem {
-			// System message with animation-like prefix
-			prefix := ">"
+			// Clean system message styling
+			prefix := "◆"
 			if i == len(m.messages)-1 {
 				prefix = pulseFrames[m.pulseFrame]
 			}
+
+			var content string
+			if msg.User != "" {
+				userStyle := lipgloss.NewStyle().
+					Foreground(m.styles.PrimaryColor).
+					Bold(true)
+				content = fmt.Sprintf("%s %s %s", prefix, userStyle.Render(msg.User), msg.Content)
+			} else {
+				content = fmt.Sprintf("%s %s", prefix, msg.Content)
+			}
+
 			sysStyle := lipgloss.NewStyle().
 				Foreground(lipgloss.Color("#00FF88")).
 				Italic(true)
-			line := sysStyle.Render(fmt.Sprintf("  %s %s", prefix, msg.Content))
+
+			line := sysStyle.Render("  " + content)
 			lines = append(lines, line)
 		} else {
-			// User message with styled components
-			timeStyle := m.styles.DateTime
-			userStyle := m.styles.User
-			msgStyle := m.styles.Msg
+			// Clean chat message formatting without background blocks
+			isOwnMessage := msg.User == m.username
 
-			timestamp := timeStyle.Render(fmt.Sprintf("[%s]", msg.Timestamp))
-			user := userStyle.Render(msg.User)
-			content := msgStyle.Render(msg.Content)
+			// Format components with proper styling
+			timestamp := m.styles.DateTime.Render(fmt.Sprintf("[%s]", msg.Timestamp))
+			user := m.styles.User.Render(msg.User + ":")
+			content := m.styles.Msg.Render(msg.Content)
 
-			line := fmt.Sprintf("%s %s: %s", timestamp, user, content)
-			lines = append(lines, line)
+			// Create clean message line without background blocks
+			if isOwnMessage {
+				// Own message - use primary color for user, white for content
+				userStyle := lipgloss.NewStyle().
+					Foreground(m.styles.PrimaryColor).
+					Bold(true)
+				user = userStyle.Render(msg.User + ":")
+				contentStyle := lipgloss.NewStyle().
+					Foreground(lipgloss.Color("#E5E7EB"))
+				content = contentStyle.Render(msg.Content)
+
+				messageLine := fmt.Sprintf("%s  %s %s", timestamp, user, content)
+				lines = append(lines, messageLine)
+			} else {
+				// Other user's message - use theme colors
+				messageLine := fmt.Sprintf("%s  %s %s", timestamp, user, content)
+				lines = append(lines, messageLine)
+			}
 		}
 	}
 
@@ -787,10 +943,71 @@ func (m mainModel) renderMessages() string {
 }
 
 func parseMessage(raw string) ChatMessage {
-	timestamp := time.Now().Format("15:04")
+	// Parse system messages (user joined/left)
+	if strings.Contains(raw, " has joined") {
+		username := strings.TrimSuffix(raw, " has joined")
+		return ChatMessage{
+			Timestamp: time.Now().Format("15:04"),
+			User:      username,
+			Content:   "joined the chat",
+			IsSystem:  true,
+		}
+	}
+	if strings.Contains(raw, " has left") {
+		username := strings.TrimSuffix(raw, " has left")
+		return ChatMessage{
+			Timestamp: time.Now().Format("15:04"),
+			User:      username,
+			Content:   "left the chat",
+			IsSystem:  true,
+		}
+	}
 
+	// Parse chat messages in format: "timestamp: username said: message"
+	// Example: "17/1/2026, 10:03:56 pm: Krishna said: Hello"
+	parts := strings.SplitN(raw, ": ", 3)
+	if len(parts) == 3 {
+		// Check if it matches the pattern "timestamp: username said: message"
+		if strings.HasSuffix(parts[1], " said") {
+			username := strings.TrimSuffix(parts[1], " said")
+			// Extract time from full timestamp (format: "17/1/2026, 10:03:56 pm")
+			fullTimestamp := parts[0]
+			// Try to extract just the time part
+			timeParts := strings.Split(fullTimestamp, ", ")
+			var displayTime string
+			if len(timeParts) > 1 {
+				// Extract time from "10:03:56 pm"
+				timeOnly := timeParts[1]
+				timeOnlyParts := strings.Split(timeOnly, ":")
+				if len(timeOnlyParts) >= 2 {
+					displayTime = timeOnlyParts[0] + ":" + timeOnlyParts[1]
+					if len(timeOnlyParts) == 3 {
+						// Include AM/PM if present
+						secondsAndAmPm := strings.TrimSpace(timeOnlyParts[2])
+						amPmParts := strings.Fields(secondsAndAmPm)
+						if len(amPmParts) > 1 {
+							displayTime += " " + amPmParts[1]
+						}
+					}
+				} else {
+					displayTime = timeOnly
+				}
+			} else {
+				displayTime = time.Now().Format("15:04")
+			}
+
+			return ChatMessage{
+				Timestamp: displayTime,
+				User:      username,
+				Content:   parts[2],
+				IsSystem:  false,
+			}
+		}
+	}
+
+	// Fallback: treat as plain message
 	return ChatMessage{
-		Timestamp: timestamp,
+		Timestamp: time.Now().Format("15:04"),
 		User:      "",
 		Content:   raw,
 		IsSystem:  false,

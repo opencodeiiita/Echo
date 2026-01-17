@@ -118,22 +118,18 @@ getTimestamp() // returns the current timestamp as a string in the format of "02
 
 ### {Krishna200608} {#127 Ooh, Shiny! (Implementation ver.)}
 
-Built a complete TUI for Echo using Bubble Tea framework.
+Built a complete TUI for Echo using Bubble Tea and Lipgloss.
 
-**Files Created/Modified:**
-- `config.go` - reads theme colors from `theme.conf`
-- `styles.go` - styling logic using Lipgloss
-- `tui_model.go` - main TUI logic (login, chat screens)
-- `main.go` and `chat.go` - updated for TUI integration
+**Files:** `config.go`, `styles.go`, `tui_model.go`, `theme.conf`, `main.go`, `chat.go`
 
-**Login Screen:** ASCII logo with gradient colors, input fields for server/username/password, show/hide password toggle, animated connect button with border effects.
+**Login Screen:** ASCII logo in accent color, animated input fields with glow effects, password toggle, pulsing connect button, styled error messages.
 
-**Chat Screen:** Purple header with pulsing online indicator, scrollable message area, animated input border (fast for 10 sec, then slow).
-**Controls:** `Enter` to send, `Alt+Enter` for new line, `PageUp`/`PageDown` to scroll, `Ctrl+U` to clear input.
-**Dynamic Input:** Textarea auto-expands up to 5 lines.
+**Chat Screen:** Header with ECHO branding, online indicator, username, session timer. Scrollable message viewport with bubbles. Dynamic textarea (expands to 5 lines). Animated input border.
 
-**Animations:** Gradient logo, pulsing dots, glowing input borders, progress bar on connecting screen, adaptive animation timing.
+**Controls:** `Enter` send, `Alt+Enter` newline, `PageUp/Down` scroll, `Ctrl+U` clear, `Tab` navigate, `Esc` quit.
 
-**Theme:** Customizable via `theme.conf` with preset options (Cyberpunk, Forest, Ocean, Sunset).
+**Theme System:** 10 presets via `THEME: N` in theme.conf: Default, Cyberpunk, Forest, Ocean, Sunset, Dracula, Nord, Monokai, Gruvbox, Tokyo Night. All UI elements use theme colors dynamically.
 
-Tested locally - all features working.
+**Animations:** Pulsing dots, glowing borders, progress bar, adaptive timing.
+
+Tested locally.

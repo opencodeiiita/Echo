@@ -37,7 +37,7 @@ var themePresets = map[int]Config{
 	// 3: Forest (Green)
 	3: {
 		WindowColor:   "#2ECC71",
-		UserColor:     "#27AE60",
+		UserColor:     "#F1C40F",
 		DateTimeColor: "#7F8C8D",
 		MsgColor:      "#ECF0F1",
 		TextColor:     "#BDC3C7",
@@ -69,7 +69,7 @@ var themePresets = map[int]Config{
 	// 7: Nord (Cool arctic theme)
 	7: {
 		WindowColor:   "#88C0D0",
-		UserColor:     "#81A1C1",
+		UserColor:     "#A3BE8C",
 		DateTimeColor: "#4C566A",
 		MsgColor:      "#ECEFF4",
 		TextColor:     "#D8DEE9",
@@ -97,6 +97,46 @@ var themePresets = map[int]Config{
 		DateTimeColor: "#565F89",
 		MsgColor:      "#C0CAF5",
 		TextColor:     "#A9B1D6",
+	},
+	// 11: One Dark (Popular VS Code theme)
+	11: {
+		WindowColor:   "#61AFEF",
+		UserColor:     "#98C379",
+		DateTimeColor: "#5C6370",
+		MsgColor:      "#ABB2BF",
+		TextColor:     "#E5C07B",
+	},
+	// 12: Material Dark (Google Material Design)
+	12: {
+		WindowColor:   "#82AAFF",
+		UserColor:     "#C792EA",
+		DateTimeColor: "#546E7A",
+		MsgColor:      "#EEFFFF",
+		TextColor:     "#B2CCD6",
+	},
+	// 13: Catppuccin Mocha (Popular modern theme)
+	13: {
+		WindowColor:   "#89B4FA",
+		UserColor:     "#A6E3A1",
+		DateTimeColor: "#6C7086",
+		MsgColor:      "#CDD6F4",
+		TextColor:     "#F9E2AF",
+	},
+	// 14: Solarized Dark (Classic terminal theme)
+	14: {
+		WindowColor:   "#268BD2",
+		UserColor:     "#859900",
+		DateTimeColor: "#586E75",
+		MsgColor:      "#EEE8D5",
+		TextColor:     "#FDF6E3",
+	},
+	// 15: Ayu Dark (Elegant dark theme)
+	15: {
+		WindowColor:   "#FFCC66",
+		UserColor:     "#5CCFE6",
+		DateTimeColor: "#4D5566",
+		MsgColor:      "#E6E1CF",
+		TextColor:     "#F8F8F2",
 	},
 }
 
