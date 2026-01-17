@@ -625,42 +625,58 @@ func (m mainModel) chatViewRender() string {
 	headerBg := m.styles.PrimaryColor
 	headerFg := lipgloss.Color("#FFFFFF")
 
-	// Pulsing online indicator (green dot)
-	onlineIndicator := lipgloss.NewStyle().
+	// Decorative left border
+	leftDecor := lipgloss.NewStyle().
+		Background(headerBg).
+		Foreground(headerFg).
+		Bold(true).
+		Render(" ◆ ")
+
+	// ECHO branding with chat icon
+	echoLabel := lipgloss.NewStyle().
+		Background(headerBg).
+		Foreground(headerFg).
+		Bold(true).
+		Render("ECHO")
+
+	// Separator
+	sep := lipgloss.NewStyle().
+		Background(headerBg).
+		Foreground(lipgloss.Color("#FFFFFF80")).
+		Render(" │ ")
+
+	// Online indicator with pulsing dot
+	dotStyle := lipgloss.NewStyle().
 		Background(headerBg).
 		Foreground(lipgloss.Color("#00FF88")).
-		Bold(true).
-		Render(pulseFrames[m.pulseFrame])
+		Bold(true)
+	onlineDot := dotStyle.Render(pulseFrames[m.pulseFrame])
 
-	// ECHO label
-	chatIcon := lipgloss.NewStyle().
+	// "Connected as" label
+	connectedLabel := lipgloss.NewStyle().
+		Background(headerBg).
+		Foreground(lipgloss.Color("#FFFFFFB0")).
+		Italic(true).
+		Render("Connected as ")
+
+	// Username with highlight
+	username := lipgloss.NewStyle().
 		Background(headerBg).
 		Foreground(headerFg).
 		Bold(true).
-		Render(" ECHO ")
+		Render(m.userInput.Value())
 
-	// Separator with purple background
-	separator := lipgloss.NewStyle().
-		Background(headerBg).
-		Foreground(headerFg).
-		Render("|")
-
-	// Online indicator section
-	onlineSection := lipgloss.NewStyle().
-		Background(headerBg).
-		Foreground(headerFg).
-		Render(" " + onlineIndicator + " ")
-
-	// Username - white on purple
-	userSection := lipgloss.NewStyle().
+	// Right decorative element
+	rightDecor := lipgloss.NewStyle().
 		Background(headerBg).
 		Foreground(headerFg).
 		Bold(true).
-		Render(m.userInput.Value() + " ")
+		Render(" ◆")
 
-	headerContent := chatIcon + separator + onlineSection + userSection
+	// Compose header content
+	headerContent := leftDecor + echoLabel + sep + onlineDot + " " + connectedLabel + username + rightDecor
 
-	// Full width header with purple background
+	// Full width header
 	headerStyle := lipgloss.NewStyle().
 		Background(headerBg).
 		Foreground(headerFg).
