@@ -2,29 +2,24 @@ package main
 
 import (
 	"fmt"
+	"os"
+
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 func main() {
-	// 1. Ask for Server Address
-	serverURL := getServerAddress()
-
-	// 2. Ask for Username
-	username := getUsername()
-
-	// 3. Ask for Password (NEW)
-	password := getPassword()
-
-	if username == "" {
-		fmt.Println("Username cannot be empty")
-		return
+	// Load configuration (ignore error to use defaults)
+	cfg, err := LoadConfig("theme.conf")
+	if err != nil {
+		// Just print a warning if we can't read it, but proceed with defaults
+		// fmt.Printf("Warning: Could not load theme.conf: %v\n", err)
 	}
 
-	fmt.Println("Connecting to server...")
+	model := initialModel(cfg)
+	p := tea.NewProgram(model, tea.WithAltScreen())
 
-	// 4. Connect using the gathered info (include password)
-	err := connectToEchoServer(serverURL, username, password)
-	if err != nil {
-		fmt.Println(err)
-		return
+	if _, err := p.Run(); err != nil {
+		fmt.Printf("Alas, there's been an error: %v", err)
+		os.Exit(1)
 	}
 }
