@@ -79,7 +79,6 @@ getTimestamp() // returns the current timestamp as a string in the format of "02
 ### {Krishna200608} {#108 Into Fire (Client ver.)}
 
 - Updated client/chat.go:
-
   - Added getPassword() function to capture user password from stdin.
   - Updated connectToEchoServer() signature to accept password parameter.
   - Modified message listener loop to remove "Server -> Client" prefix and redundant client-side timestamp, aligning output with the required spec.
@@ -92,22 +91,18 @@ getTimestamp() // returns the current timestamp as a string in the format of "02
 ### {dwivediprashant} {#111 Into Fire (Server ver.)}
 
 - Updated server/server.js:
-
   - Added bcrypt dependency for password hashing.
   - Implemented authentication functions: hashPassword(), verifyPassword(), findUser(), createUser().
   - Modified connection logic to handle JSON authentication data.
   - Added proper error handling for wrong passwords and duplicate online users.
 
 - Updated server/models/User.js:
-
   - Added password field to user schema for storing hashed passwords.
 
 - Updated server/package.json:
-
   - Added bcrypt dependency for secure password hashing.
 
 - Updated client/chat.go:
-
   - Added JSON encoding for authentication data.
   - Modified connectToEchoServer() to send {"username": "...", "password": "..."}.
   - Added input validation to prevent empty usernames and passwords.
@@ -115,3 +110,14 @@ getTimestamp() // returns the current timestamp as a string in the format of "02
   - Added success message display for correct authentication.
 
 - Tested locally: Verified new user registration, existing user login, wrong password rejection, and proper error handling.
+
+### {MK-codes365} {#TUI Design and Implementation}
+
+- Designed and implemented a modern terminal user interface using bubbletea and lipgloss
+- Added a login screen featuring server selection, username entry, and masked password input
+- Implemented a main chat window with a distinct messages area and input field
+- Created a customizable theme system that reads from echo.theme file
+- The theme system supports window, user, datetime, msg, text, error and button colors
+- Refactored client/chat.go to support asynchronous websocket communication with the tui
+- Updated client/main.go to initialize and run the bubbletea program
+- Ensured timestamps, userids and messages appear distinctly with themeable colors
