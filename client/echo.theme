@@ -1,0 +1,23 @@
+# Echo TUI Theme Configuration
+# Use Hex color codes (e.g., #FFFFFF)
+
+WINDOW: #1a1a1a
+# Background color of the main window
+
+USER: #FF00FF
+# Color of the user ID / name in chat
+
+DATETIME: #5f5f5f
+# Color of the timestamp
+
+MSG: #ffffff
+# Color of the message bubble/text border
+
+TEXT: #e4e4e4
+# Color of the message text
+
+ERROR: #ff5f87
+# Color for error messages
+
+BUTTON: #00ff87
+# Color for the "Connect" button
