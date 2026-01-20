@@ -104,7 +104,7 @@ getTimestamp() // returns the current timestamp as a string in the format of "02
 
 - Updated server/package.json:
 
-  - Added bcrypt dependency for secure password hashing.
+  - Added bcrypt dependency for password hashing.
 
 - Updated client/chat.go:
 
@@ -115,3 +115,21 @@ getTimestamp() // returns the current timestamp as a string in the format of "02
   - Added success message display for correct authentication.
 
 - Tested locally: Verified new user registration, existing user login, wrong password rejection, and proper error handling.
+
+### {Krishna200608} {#127 Ooh, Shiny! (Implementation ver.)}
+
+Built a complete TUI for Echo using Bubble Tea and Lipgloss.
+
+**Files:** `config.go`, `styles.go`, `tui_model.go`, `theme.conf`, `main.go`, `chat.go`
+
+**Login Screen:** ASCII logo in accent color, animated input fields with glow effects, password toggle, pulsing connect button, styled error messages.
+
+**Chat Screen:** Header with ECHO branding, online indicator, username, session timer. Scrollable message viewport with bubbles. Dynamic textarea (expands to 5 lines). Animated input border.
+
+**Controls:** `Enter` send, `Alt+Enter` newline, `PageUp/Down` scroll, `Ctrl+U` clear, `Tab` navigate, `Esc` quit.
+
+**Theme System:** 10 presets via `THEME: N` in theme.conf: Default, Cyberpunk, Forest, Ocean, Sunset, Dracula, Nord, Monokai, Gruvbox, Tokyo Night. All UI elements use theme colors dynamically.
+
+**Animations:** Pulsing dots, glowing borders, progress bar, adaptive timing.
+
+Tested locally.
