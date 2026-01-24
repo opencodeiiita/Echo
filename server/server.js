@@ -89,6 +89,14 @@ async function logMessage(sender, content) {
 async function startServer() {
   await connectDB();
 
+  // Reset online status for all users on server startup
+  try {
+    await User.updateMany({}, { isOnline: false });
+    console.log(`[${getTimestamp()}] Reset all users to offline status`);
+  } catch (error) {
+    console.error(`[${getTimestamp()}] Error resetting user status:`, error.message);
+  }
+
   const wss = new WebSocket.Server({ port: PORT });
 
   wss.on("connection", (ws) => {

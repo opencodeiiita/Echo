@@ -532,7 +532,7 @@ func (m mainModel) loginView() string {
 		Italic(true).
 		Width(50).
 		Align(lipgloss.Center)
-	hintText := fmt.Sprintf("Tab: Navigate | Enter: Select | Space: Toggle Password | Esc: Quit")
+	hintText := "Tab: Navigate | Enter: Select | Space: Toggle Password | Esc: Quit"
 	b.WriteString(hintStyle.Render(hintText))
 
 	// Bottom decorative border
@@ -849,7 +849,7 @@ func (m mainModel) chatViewRender() string {
 	b.WriteString("\n")
 
 	// Enhanced footer with better styling
-	footerContent := fmt.Sprintf(" [Enter] Send | [Alt+Enter] New Line | [PgUp/PgDn] Scroll | [Ctrl+U] Clear | [Esc] Quit")
+	footerContent := " [Enter] Send | [Alt+Enter] New Line | [PgUp/PgDn] Scroll | [Ctrl+U] Clear | [Esc] Quit"
 	footerStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#6B7280")).
 		Italic(true).
@@ -887,6 +887,17 @@ func (m mainModel) getInputStyle(index int) lipgloss.Style {
 func (m mainModel) renderMessages() string {
 	var lines []string
 
+	// Warn: viewport.Width might be 0 initially
+	width := m.viewport.Width
+	if width == 0 {
+		width = 80 // fallback
+	}
+	wrapWidth := width - 2
+	if wrapWidth < 20 {
+		wrapWidth = 20
+	}
+	wrapper := lipgloss.NewStyle().Width(wrapWidth)
+
 	for i, msg := range m.messages {
 		if msg.IsSystem {
 			// Clean system message styling
@@ -917,7 +928,7 @@ func (m mainModel) renderMessages() string {
 				line = sysStyle.Render("  " + prefix + " " + msg.Content)
 			}
 
-			lines = append(lines, line)
+			lines = append(lines, wrapper.Render(line))
 		} else if msg.IsPrivate {
 			// Private/whisper message - use distinct styling
 			privStyle := lipgloss.NewStyle().
@@ -933,7 +944,7 @@ func (m mainModel) renderMessages() string {
 			content := privStyle.Render(msg.Content)
 
 			messageLine := fmt.Sprintf("%s %s  %s %s", timestamp, whisperLabel, user, content)
-			lines = append(lines, messageLine)
+			lines = append(lines, wrapper.Render(messageLine))
 		} else {
 			// Regular chat message formatting
 			isOwnMessage := msg.User == m.username
@@ -955,11 +966,11 @@ func (m mainModel) renderMessages() string {
 				content = contentStyle.Render(msg.Content)
 
 				messageLine := fmt.Sprintf("%s  %s %s", timestamp, user, content)
-				lines = append(lines, messageLine)
+				lines = append(lines, wrapper.Render(messageLine))
 			} else {
 				// Other user's message - use theme colors
 				messageLine := fmt.Sprintf("%s  %s %s", timestamp, user, content)
-				lines = append(lines, messageLine)
+				lines = append(lines, wrapper.Render(messageLine))
 			}
 		}
 	}
