@@ -32,6 +32,7 @@ type Styles struct {
 	User       lipgloss.Style
 	DateTime   lipgloss.Style
 	Msg        lipgloss.Style
+	PrivMsg    lipgloss.Style // Private message style
 	Text       lipgloss.Style
 	Error      lipgloss.Style
 	Success    lipgloss.Style
@@ -43,6 +44,7 @@ type Styles struct {
 	// Theme colors for use in tui_model.go
 	PrimaryColor   lipgloss.Color
 	SecondaryColor lipgloss.Color
+	PrivMsgColor   lipgloss.Color
 }
 
 func InitStyles(cfg Config) Styles {
@@ -185,6 +187,14 @@ func InitStyles(cfg Config) Styles {
 		OnlineUser: lipgloss.NewStyle().
 			Foreground(successColor).
 			Bold(true),
+
+		// Private message style
+		PrivMsg: lipgloss.NewStyle().
+			Foreground(lipgloss.Color(cfg.PrivMsgColor)).
+			Italic(true),
+
+		// Private message color for use in tui_model.go
+		PrivMsgColor: lipgloss.Color(cfg.PrivMsgColor),
 	}
 }
 

@@ -14,6 +14,7 @@ type Config struct {
 	DateTimeColor string
 	MsgColor      string
 	TextColor     string
+	PrivMsgColor  string // Color for private/whisper messages
 }
 
 // Preset themes - select by number in theme.conf
@@ -25,6 +26,7 @@ var themePresets = map[int]Config{
 		DateTimeColor: "#6B7280",
 		MsgColor:      "#E5E7EB",
 		TextColor:     "#FFFFFF",
+		PrivMsgColor:  "#FF69B4", // Hot pink
 	},
 	// 2: Cyberpunk (Magenta/Cyan)
 	2: {
@@ -33,6 +35,7 @@ var themePresets = map[int]Config{
 		DateTimeColor: "#FF6B9D",
 		MsgColor:      "#FFFFFF",
 		TextColor:     "#E0E0E0",
+		PrivMsgColor:  "#FFD700", // Gold
 	},
 	// 3: Forest (Green)
 	3: {
@@ -41,6 +44,7 @@ var themePresets = map[int]Config{
 		DateTimeColor: "#7F8C8D",
 		MsgColor:      "#ECF0F1",
 		TextColor:     "#BDC3C7",
+		PrivMsgColor:  "#E91E63", // Pink
 	},
 	// 4: Ocean (Blue)
 	4: {
@@ -49,6 +53,7 @@ var themePresets = map[int]Config{
 		DateTimeColor: "#95A5A6",
 		MsgColor:      "#ECF0F1",
 		TextColor:     "#BDC3C7",
+		PrivMsgColor:  "#FF6B9D", // Coral pink
 	},
 	// 5: Sunset (Orange/Red)
 	5: {
@@ -57,6 +62,7 @@ var themePresets = map[int]Config{
 		DateTimeColor: "#95A5A6",
 		MsgColor:      "#FFEAA7",
 		TextColor:     "#DFE6E9",
+		PrivMsgColor:  "#9B59B6", // Purple
 	},
 	// 6: Dracula (Popular dark theme)
 	6: {
@@ -65,6 +71,7 @@ var themePresets = map[int]Config{
 		DateTimeColor: "#6272A4",
 		MsgColor:      "#F8F8F2",
 		TextColor:     "#F8F8F2",
+		PrivMsgColor:  "#FF79C6", // Dracula pink
 	},
 	// 7: Nord (Cool arctic theme)
 	7: {
@@ -73,6 +80,7 @@ var themePresets = map[int]Config{
 		DateTimeColor: "#4C566A",
 		MsgColor:      "#ECEFF4",
 		TextColor:     "#D8DEE9",
+		PrivMsgColor:  "#B48EAD", // Nord purple
 	},
 	// 8: Monokai (Classic editor theme)
 	8: {
@@ -81,6 +89,7 @@ var themePresets = map[int]Config{
 		DateTimeColor: "#75715E",
 		MsgColor:      "#F8F8F2",
 		TextColor:     "#F8F8F2",
+		PrivMsgColor:  "#AE81FF", // Monokai purple
 	},
 	// 9: Gruvbox (Retro warm theme)
 	9: {
@@ -89,6 +98,7 @@ var themePresets = map[int]Config{
 		DateTimeColor: "#928374",
 		MsgColor:      "#EBDBB2",
 		TextColor:     "#FBF1C7",
+		PrivMsgColor:  "#D3869B", // Gruvbox purple
 	},
 	// 10: Tokyo Night (Modern VSCode theme)
 	10: {
@@ -97,6 +107,7 @@ var themePresets = map[int]Config{
 		DateTimeColor: "#565F89",
 		MsgColor:      "#C0CAF5",
 		TextColor:     "#A9B1D6",
+		PrivMsgColor:  "#BB9AF7", // Tokyo purple
 	},
 	// 11: One Dark (Popular VS Code theme)
 	11: {
@@ -105,6 +116,7 @@ var themePresets = map[int]Config{
 		DateTimeColor: "#5C6370",
 		MsgColor:      "#ABB2BF",
 		TextColor:     "#E5C07B",
+		PrivMsgColor:  "#C678DD", // One Dark purple
 	},
 	// 12: Material Dark (Google Material Design)
 	12: {
@@ -113,6 +125,7 @@ var themePresets = map[int]Config{
 		DateTimeColor: "#546E7A",
 		MsgColor:      "#EEFFFF",
 		TextColor:     "#B2CCD6",
+		PrivMsgColor:  "#FF5370", // Material pink
 	},
 	// 13: Catppuccin Mocha (Popular modern theme)
 	13: {
@@ -121,6 +134,7 @@ var themePresets = map[int]Config{
 		DateTimeColor: "#6C7086",
 		MsgColor:      "#CDD6F4",
 		TextColor:     "#F9E2AF",
+		PrivMsgColor:  "#F5C2E7", // Catppuccin pink
 	},
 	// 14: Solarized Dark (Classic terminal theme)
 	14: {
@@ -129,6 +143,7 @@ var themePresets = map[int]Config{
 		DateTimeColor: "#586E75",
 		MsgColor:      "#EEE8D5",
 		TextColor:     "#FDF6E3",
+		PrivMsgColor:  "#D33682", // Solarized magenta
 	},
 	// 15: Ayu Dark (Elegant dark theme)
 	15: {
@@ -137,6 +152,7 @@ var themePresets = map[int]Config{
 		DateTimeColor: "#4D5566",
 		MsgColor:      "#E6E1CF",
 		TextColor:     "#F8F8F2",
+		PrivMsgColor:  "#F07178", // Ayu red
 	},
 }
 
@@ -192,6 +208,8 @@ func LoadConfig(path string) (Config, error) {
 			config.MsgColor = value
 		case "TEXT":
 			config.TextColor = value
+		case "PRIV_MESSAGE":
+			config.PrivMsgColor = value
 		}
 	}
 

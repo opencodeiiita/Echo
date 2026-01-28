@@ -97,6 +97,7 @@ type ChatMessage struct {
 	User      string
 	Content   string
 	IsSystem  bool
+	IsPrivate bool // For whisper/private messages
 }
 
 type errMsg error
@@ -336,7 +337,8 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		userMsg := ChatMessage{
 			Timestamp: time.Now().Format("15:04"),
-			Content:   fmt.Sprintf("Welcome, %s! You can start chatting now.", m.userInput.Value()),
+			User:      m.userInput.Value(),
+			Content:   "You can start chatting now.",
 			IsSystem:  true,
 		}
 		m.messages = append(m.messages, userMsg)
@@ -530,7 +532,7 @@ func (m mainModel) loginView() string {
 		Italic(true).
 		Width(50).
 		Align(lipgloss.Center)
-	hintText := fmt.Sprintf("Tab: Navigate | Enter: Select | Space: Toggle Password | Esc: Quit")
+	hintText := "Tab: Navigate | Enter: Select | Space: Toggle Password | Esc: Quit"
 	b.WriteString(hintStyle.Render(hintText))
 
 	// Bottom decorative border
@@ -847,7 +849,7 @@ func (m mainModel) chatViewRender() string {
 	b.WriteString("\n")
 
 	// Enhanced footer with better styling
-	footerContent := fmt.Sprintf(" [Enter] Send | [Alt+Enter] New Line | [PgUp/PgDn] Scroll | [Ctrl+U] Clear | [Esc] Quit")
+	footerContent := " [Enter] Send | [Alt+Enter] New Line | [PgUp/PgDn] Scroll | [Ctrl+U] Clear | [Esc] Quit"
 	footerStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#6B7280")).
 		Italic(true).
@@ -885,6 +887,17 @@ func (m mainModel) getInputStyle(index int) lipgloss.Style {
 func (m mainModel) renderMessages() string {
 	var lines []string
 
+	// Warn: viewport.Width might be 0 initially
+	width := m.viewport.Width
+	if width == 0 {
+		width = 80 // fallback
+	}
+	wrapWidth := width - 2
+	if wrapWidth < 20 {
+		wrapWidth = 20
+	}
+	wrapper := lipgloss.NewStyle().Width(wrapWidth)
+
 	for i, msg := range m.messages {
 		if msg.IsSystem {
 			// Clean system message styling
@@ -893,24 +906,47 @@ func (m mainModel) renderMessages() string {
 				prefix = pulseFrames[m.pulseFrame]
 			}
 
-			var content string
-			if msg.User != "" {
-				userStyle := lipgloss.NewStyle().
-					Foreground(m.styles.PrimaryColor).
-					Bold(true)
-				content = fmt.Sprintf("%s %s %s", prefix, userStyle.Render(msg.User), msg.Content)
-			} else {
-				content = fmt.Sprintf("%s %s", prefix, msg.Content)
-			}
-
 			sysStyle := lipgloss.NewStyle().
 				Foreground(lipgloss.Color("#00FF88")).
 				Italic(true)
 
-			line := sysStyle.Render("  " + content)
-			lines = append(lines, line)
+			var line string
+			if msg.User != "" {
+				// User-specific system message
+				userStyle := lipgloss.NewStyle().
+					Foreground(m.styles.PrimaryColor).
+					Bold(true)
+				// Check if it's a welcome message or join/leave
+				if msg.Content == "You can start chatting now." {
+					// Format: ◎ Welcome, Alice! You can start chatting now.
+					line = sysStyle.Render("  "+prefix+" Welcome, ") + userStyle.Render(msg.User+"!") + sysStyle.Render(" "+msg.Content)
+				} else {
+					// Join/leave messages
+					line = sysStyle.Render("  "+prefix+" ") + userStyle.Render(msg.User) + sysStyle.Render(" "+msg.Content)
+				}
+			} else {
+				line = sysStyle.Render("  " + prefix + " " + msg.Content)
+			}
+
+			lines = append(lines, wrapper.Render(line))
+		} else if msg.IsPrivate {
+			// Private/whisper message - use distinct styling
+			privStyle := lipgloss.NewStyle().
+				Foreground(m.styles.PrivMsgColor).
+				Italic(true)
+
+			timestamp := m.styles.DateTime.Render(fmt.Sprintf("[%s]", msg.Timestamp))
+			whisperLabel := privStyle.Render("[WHISPER]")
+			userStyle := lipgloss.NewStyle().
+				Foreground(m.styles.PrivMsgColor).
+				Bold(true)
+			user := userStyle.Render(msg.User + ":")
+			content := privStyle.Render(msg.Content)
+
+			messageLine := fmt.Sprintf("%s %s  %s %s", timestamp, whisperLabel, user, content)
+			lines = append(lines, wrapper.Render(messageLine))
 		} else {
-			// Clean chat message formatting without background blocks
+			// Regular chat message formatting
 			isOwnMessage := msg.User == m.username
 
 			// Format components with proper styling
@@ -918,7 +954,7 @@ func (m mainModel) renderMessages() string {
 			user := m.styles.User.Render(msg.User + ":")
 			content := m.styles.Msg.Render(msg.Content)
 
-			// Create clean message line without background blocks
+			// Create clean message line
 			if isOwnMessage {
 				// Own message - use primary color for user, white for content
 				userStyle := lipgloss.NewStyle().
@@ -930,11 +966,11 @@ func (m mainModel) renderMessages() string {
 				content = contentStyle.Render(msg.Content)
 
 				messageLine := fmt.Sprintf("%s  %s %s", timestamp, user, content)
-				lines = append(lines, messageLine)
+				lines = append(lines, wrapper.Render(messageLine))
 			} else {
 				// Other user's message - use theme colors
 				messageLine := fmt.Sprintf("%s  %s %s", timestamp, user, content)
-				lines = append(lines, messageLine)
+				lines = append(lines, wrapper.Render(messageLine))
 			}
 		}
 	}
@@ -963,44 +999,40 @@ func parseMessage(raw string) ChatMessage {
 		}
 	}
 
-	// Parse chat messages in format: "timestamp: username said: message"
-	// Example: "17/1/2026, 10:03:56 pm: Krishna said: Hello"
+	// Check for whisper error message
+	if raw == "Sorry, that user is not online!" {
+		return ChatMessage{
+			Timestamp: time.Now().Format("15:04"),
+			Content:   raw,
+			IsSystem:  true,
+		}
+	}
+
+	// Parse chat messages in format: "timestamp: username said: message" or "timestamp: username privately said: message"
 	parts := strings.SplitN(raw, ": ", 3)
 	if len(parts) == 3 {
-		// Check if it matches the pattern "timestamp: username said: message"
-		if strings.HasSuffix(parts[1], " said") {
-			username := strings.TrimSuffix(parts[1], " said")
-			// Extract time from full timestamp (format: "17/1/2026, 10:03:56 pm")
-			fullTimestamp := parts[0]
-			// Try to extract just the time part
-			timeParts := strings.Split(fullTimestamp, ", ")
-			var displayTime string
-			if len(timeParts) > 1 {
-				// Extract time from "10:03:56 pm"
-				timeOnly := timeParts[1]
-				timeOnlyParts := strings.Split(timeOnly, ":")
-				if len(timeOnlyParts) >= 2 {
-					displayTime = timeOnlyParts[0] + ":" + timeOnlyParts[1]
-					if len(timeOnlyParts) == 3 {
-						// Include AM/PM if present
-						secondsAndAmPm := strings.TrimSpace(timeOnlyParts[2])
-						amPmParts := strings.Fields(secondsAndAmPm)
-						if len(amPmParts) > 1 {
-							displayTime += " " + amPmParts[1]
-						}
-					}
-				} else {
-					displayTime = timeOnly
-				}
-			} else {
-				displayTime = time.Now().Format("15:04")
-			}
-
+		// Check if it matches the pattern "timestamp: username privately said: message"
+		if strings.HasSuffix(parts[1], " privately said") {
+			username := strings.TrimSuffix(parts[1], " privately said")
+			displayTime := extractTime(parts[0])
 			return ChatMessage{
 				Timestamp: displayTime,
 				User:      username,
 				Content:   parts[2],
 				IsSystem:  false,
+				IsPrivate: true,
+			}
+		}
+		// Check if it matches the pattern "timestamp: username said: message"
+		if strings.HasSuffix(parts[1], " said") {
+			username := strings.TrimSuffix(parts[1], " said")
+			displayTime := extractTime(parts[0])
+			return ChatMessage{
+				Timestamp: displayTime,
+				User:      username,
+				Content:   parts[2],
+				IsSystem:  false,
+				IsPrivate: false,
 			}
 		}
 	}
@@ -1012,6 +1044,28 @@ func parseMessage(raw string) ChatMessage {
 		Content:   raw,
 		IsSystem:  false,
 	}
+}
+
+// extractTime extracts display time from full timestamp
+func extractTime(fullTimestamp string) string {
+	timeParts := strings.Split(fullTimestamp, ", ")
+	if len(timeParts) > 1 {
+		timeOnly := timeParts[1]
+		timeOnlyParts := strings.Split(timeOnly, ":")
+		if len(timeOnlyParts) >= 2 {
+			displayTime := timeOnlyParts[0] + ":" + timeOnlyParts[1]
+			if len(timeOnlyParts) == 3 {
+				secondsAndAmPm := strings.TrimSpace(timeOnlyParts[2])
+				amPmParts := strings.Fields(secondsAndAmPm)
+				if len(amPmParts) > 1 {
+					displayTime += " " + amPmParts[1]
+				}
+			}
+			return displayTime
+		}
+		return timeOnly
+	}
+	return time.Now().Format("15:04")
 }
 
 // Commands and Messages

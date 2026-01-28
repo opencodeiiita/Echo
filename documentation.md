@@ -133,3 +133,24 @@ Built a complete TUI for Echo using Bubble Tea and Lipgloss.
 **Animations:** Pulsing dots, glowing borders, progress bar, adaptive timing.
 
 Tested locally.
+
+### {Krishna200608} {#132 You've got a friend in me}
+
+Implemented private messaging with whisper commands.
+
+**Server Changes (`server.js`):**
+- Added `!whisper <user> <msg>` and `!w <user> <msg>` command parsing
+- Private messages sent only to sender and receiver
+- Error response if target user not online
+
+**Client Changes:**
+- `config.go`: Added `PrivMsgColor` to Config struct and all 15 theme presets
+- `styles.go`: Added `PrivMsg` style and `PrivMsgColor` for rendering
+- `tui_model.go`: Updated `ChatMessage` with `IsPrivate` field, `parseMessage()` detects "privately said:" format, `renderMessages()` shows `[WHISPER]` label in distinct color
+- `theme.conf`: Added `PRIV_MESSAGE` key for custom color
+
+**Usage:** Type `!whisper username message` or `!w username message` to send private messages.
+
+**Visual:** Private messages display with `[WHISPER]` prefix in theme-specific color (pink/purple variants).
+
+Tested locally with multiple clients.

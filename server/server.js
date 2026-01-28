@@ -89,6 +89,14 @@ async function logMessage(sender, content) {
 async function startServer() {
   await connectDB();
 
+  // Reset online status for all users on server startup
+  try {
+    await User.updateMany({}, { isOnline: false });
+    console.log(`[${getTimestamp()}] Reset all users to offline status`);
+  } catch (error) {
+    console.error(`[${getTimestamp()}] Error resetting user status:`, error.message);
+  }
+
   const wss = new WebSocket.Server({ port: PORT });
 
   wss.on("connection", (ws) => {
@@ -161,14 +169,49 @@ async function startServer() {
           const username = clients.get(ws);
           const time = getTimestamp();
 
-          await logMessage(username, text);
+          // Check for whisper command: !whisper <user> <msg> or !w <user> <msg>
+          const whisperMatch = text.match(/^!(?:whisper|w)\s+(\S+)\s+(.+)$/i);
 
-          const finalMessage = `${time}: ${username} said: ${text}`;
-          wss.clients.forEach((client) => {
-            if (client.readyState === WebSocket.OPEN) {
-              client.send(finalMessage);
+          if (whisperMatch) {
+            const targetUser = whisperMatch[1];
+            const privateMsg = whisperMatch[2];
+
+            // Find target user's WebSocket connection
+            let targetWs = null;
+            for (const [clientWs, clientUsername] of clients.entries()) {
+              if (clientUsername.toLowerCase() === targetUser.toLowerCase()) {
+                targetWs = clientWs;
+                break;
+              }
             }
-          });
+
+            if (targetWs && targetWs.readyState === WebSocket.OPEN) {
+              // Send private message to receiver
+              const privateMessage = `${time}: ${username} privately said: ${privateMsg}`;
+              targetWs.send(privateMessage);
+
+              // Also send to sender (so they see their own message)
+              if (ws !== targetWs && ws.readyState === WebSocket.OPEN) {
+                ws.send(privateMessage);
+              }
+
+              await logMessage(username, `[PRIVATE to ${targetUser}] ${privateMsg}`);
+              console.log(`[${time}] ${username} whispered to ${targetUser}: ${privateMsg}`);
+            } else {
+              // Target user not online
+              ws.send(`Sorry, that user is not online!`);
+            }
+          } else {
+            // Regular broadcast message
+            await logMessage(username, text);
+
+            const finalMessage = `${time}: ${username} said: ${text}`;
+            wss.clients.forEach((client) => {
+              if (client.readyState === WebSocket.OPEN) {
+                client.send(finalMessage);
+              }
+            });
+          }
         });
       } catch (error) {
         console.error(
