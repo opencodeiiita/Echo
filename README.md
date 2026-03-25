@@ -4,7 +4,7 @@
 
 Echo is a terminal-user-interface (TUI) chat application for lightweight and fast chatting, to be run directly from the terminal - no switching to an ugly , counterintuitive GUI based app running on a browser or a webapplet
 
-NOTE: OPENCODE 25 has come to and end, and so has the development of this particular project! Thank you to all who contributed!
+**NOTE: OPENCODE 25 has come to and end, and so has the development of this particular project! Thank you to all who contributed!**
 
 ### Tech Stack 
 
